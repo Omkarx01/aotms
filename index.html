@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Driver GPS Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    .logo {
+      margin: 20px auto;
+    }
+    .login-container, .gps-container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 400px;
+      margin: 20px auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .login-container input {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #070707;
+      border-radius: 5px;
+    }
+    .login-container button {
+      width: 100%;
+      padding: 10px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .login-container button:hover {
+      background: #218838;
+    }
+    .error {
+      color: red;
+      font-size: 0.9em;
+    }
+    .label {
+      font-weight: bold;
+      color: #555;
+    }
+    .value {
+      font-size: 1.2em;
+      color: #222;
+    }
+  </style>
+</head>
+<body>
+
+  <img src="logoAOTMS.jpg" alt="Company Logo" class="logo" width="250" />
+
+  <!-- Login Form -->
+  <div class="login-container" id="loginContainer">
+    <h2>Driver Login</h2>
+    <form id="loginForm">
+      <input type="text" id="username" placeholder="Driver username" required />
+      <input type="password" id="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+      <p class="error" id="errorMsg"></p>
+    </form>
+  </div>
+
+  <!-- GPS Output -->
+  <div class="gps-container" id="gpsContainer" style="display:none;">
+    <h2>📍 Live GPS Tracker</h2>
+    <div id="location">
+      <p>Waiting for location...</p>
+    </div>
+  </div>
+
+  <script>
+    // Login handling
+    document.getElementById("loginForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      const errorMsg = document.getElementById("errorMsg");
+
+      const validUser = "driver";
+      const validPass = "1234";
+
+      if (username === validUser && password === validPass) {
+        document.getElementById("loginContainer").style.display = "none";
+        document.getElementById("gpsContainer").style.display = "block";
+        startTracking(); // Start GPS tracking
+      } else {
+        errorMsg.textContent = "❌ Invalid username or password";
+      }
+    });
+
+    // GPS tracking
+    const output = document.getElementById("location");
+
+    function updateLocation(position) {
+      const lat = position.coords.latitude.toFixed(6);
+      const lon = position.coords.longitude.toFixed(6);
+      const accuracy = position.coords.accuracy.toFixed(1);
+      const timestamp = new Date().toISOString();
+
+      output.innerHTML = `
+        <div class="label">Latitude:</div>
+        <div class="value">${lat}</div>
+        <div class="label">Longitude:</div>
+        <div class="value">${lon}</div>
+        <div class="label">Accuracy:</div>
+        <div class="value">${accuracy} meters</div>
+        <div class="label">Last updated:</div>
+        <div class="value">${new Date().toLocaleTimeString()}</div>
+      `;
+
+      fetch("https://lr5ag5bdo9.execute-api.ap-south-1.amazonaws.com/live/send-gps", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          latitude: lat,
+          longitude: lon,
+          accuracy: accuracy,
+          timestamp: timestamp
+        })
+      })
+      .then(response => response.json())
+      .then(data => console.log("✅ Sent to AWS:", data))
+      .catch(err => {
+        console.error("❌ Fetch error:", err);
+        alert("❌ Failed to send location: " + err.message);
+      });
+    }
+
+    function handleError(error) {
+      console.error("❌ GPS Error:", error);
+      output.innerHTML = `<p style="color:red;">❌ GPS Error: ${error.message}</p>`;
+    }
+
+    function getLocation() {
+      navigator.geolocation.getCurrentPosition(updateLocation, handleError, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      });
+    }
+
+    function startTracking() {
+      if ("geolocation" in navigator) {
+        getLocation();
+        setInterval(getLocation, 5000);
+      } else {
+        output.innerHTML = "Geolocation is not supported by this browser.";
+      }
+    }
+  </script>
+</body>
+</html>
