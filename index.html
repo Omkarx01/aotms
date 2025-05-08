@@ -60,18 +60,16 @@
 
   <img src="logoAOTMS.jpg" alt="Company Logo" class="logo" width="250" />
 
-  <!-- Login Form -->
   <div class="login-container" id="loginContainer">
     <h2>Driver Login</h2>
     <form id="loginForm">
-      <input type="text" id="username" placeholder="Driver username" required />
+      <input type="email" id="email" placeholder="Email" required />
       <input type="password" id="password" placeholder="Password" required />
       <button type="submit">Login</button>
       <p class="error" id="errorMsg"></p>
     </form>
   </div>
 
-  <!-- GPS Output -->
   <div class="gps-container" id="gpsContainer" style="display:none;">
     <h2>📍 Live GPS Tracker</h2>
     <div id="location">
@@ -79,29 +77,49 @@
     </div>
   </div>
 
+  <!-- Firebase SDKs (Compat for older HTML usage) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+
   <script>
-    // Login handling
+    // Firebase config (make sure this is correct)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCtxRAZMSTfTs0zVrgFSaZtkVNu0M5BGD4",
+      authDomain: "aots-13497.firebaseapp.com",
+      databaseURL: "https://aots-13497-default-rtdb.firebaseio.com",
+      projectId: "aots-13497",
+      storageBucket: "aots-13497.appspot.com",
+      messagingSenderId: "605826678120",
+      appId: "1:605826678120:web:ccb81fb4f79fd17c166add"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    let currentUsername = null;
+    const output = document.getElementById("location");
+
+    // Login
     document.getElementById("loginForm").addEventListener("submit", function (e) {
       e.preventDefault();
-
-      const username = document.getElementById("username").value;
+      const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
       const errorMsg = document.getElementById("errorMsg");
 
-      const validUser = "driver01";
-      const validPass = "d1234";
-
-      if (username === validUser && password === validPass) {
-        document.getElementById("loginContainer").style.display = "none";
-        document.getElementById("gpsContainer").style.display = "block";
-        startTracking(); // Start GPS tracking
-      } else {
-        errorMsg.textContent = "❌ Invalid username or password";
-      }
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => {
+          currentUsername = email.split("@")[0];
+          document.getElementById("loginContainer").style.display = "none";
+          document.getElementById("gpsContainer").style.display = "block";
+          startTracking();
+        })
+        .catch((err) => {
+          errorMsg.textContent = "❌ " + err.message;
+        });
     });
-
-    // GPS tracking
-    const output = document.getElementById("location");
 
     function updateLocation(position) {
       const lat = position.coords.latitude.toFixed(6);
@@ -110,37 +128,39 @@
       const timestamp = new Date().toISOString();
 
       output.innerHTML = `
-        <div class="label">Latitude:</div>
-        <div class="value">${lat}</div>
-        <div class="label">Longitude:</div>
-        <div class="value">${lon}</div>
-        <div class="label">Accuracy:</div>
-        <div class="value">${accuracy} meters</div>
-        <div class="label">Last updated:</div>
-        <div class="value">${new Date().toLocaleTimeString()}</div>
+        <div class="label">Latitude:</div><div class="value">${lat}</div>
+        <div class="label">Longitude:</div><div class="value">${lon}</div>
+        <div class="label">Accuracy:</div><div class="value">${accuracy} meters</div>
+        <div class="label">Last updated:</div><div class="value">${new Date().toLocaleTimeString()}</div>
       `;
 
-      fetch("https://lr5ag5bdo9.execute-api.ap-south-1.amazonaws.com/live/send-gps", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          latitude: lat,
-          longitude: lon,
-          accuracy: accuracy,
-          timestamp: timestamp
-        })
+      const ref = db.ref("ambulances/" + currentUsername).push();
+      ref.set({
+        latitude: lat,
+        longitude: lon,
+        accuracy: accuracy,
+        timestamp: timestamp
       })
-      .then(response => response.json())
-      .then(data => console.log("✅ Sent to AWS:", data))
+      .then(() => {
+        console.log("✅ Location saved");
+
+        // Auto-remove after 2 minutes
+        setTimeout(() => {
+          ref.remove().then(() => {
+            console.log("🗑 Entry auto-deleted");
+          }).catch(err => {
+            console.error("❌ Delete error:", err);
+          });
+        }, 2 * 60 * 1000); // 2 minutes
+      })
       .catch(err => {
-        console.error("❌ Fetch error:", err);
-        alert("❌ Failed to send location: " + err.message);
+        console.error("❌ Write error:", err);
       });
     }
 
     function handleError(error) {
       console.error("❌ GPS Error:", error);
-      output.innerHTML = `<p style="color:red;">❌ GPS Error: ${error.message}</p>`;
+      output.innerHTML = <p style="color:red;">❌ GPS Error: ${error.message}</p>;
     }
 
     function getLocation() {
