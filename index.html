@@ -7,28 +7,34 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f9f9f9;
+      background-color: #111111;
       margin: 0;
       padding: 20px;
       text-align: center;
+      color: #f0f0f0;
     }
     .logo {
       margin: 20px auto;
     }
     .login-container, .gps-container {
-      background: white;
+      background: #1a1a1a;
       padding: 20px;
       border-radius: 10px;
       max-width: 400px;
       margin: 20px auto;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
     }
     .login-container input {
       width: 90%;
       padding: 10px;
       margin: 10px 0;
-      border: 1px solid #070707;
+      border: 1px solid #555;
       border-radius: 5px;
+      background-color: #222;
+      color: #f0f0f0;
+    }
+    .login-container input::placeholder {
+      color: #aaa;
     }
     .login-container button {
       width: 100%;
@@ -40,19 +46,19 @@
       cursor: pointer;
     }
     .login-container button:hover {
-      background: #111111;
+      background: #444;
     }
     .error {
-      color: red;
+      color: #ff4d4d;
       font-size: 0.9em;
     }
     .label {
       font-weight: bold;
-      color: #555;
+      color: #bbbbbb;
     }
     .value {
       font-size: 1.2em;
-      color: #222;
+      color: #ffffff;
     }
   </style>
 </head>
@@ -77,13 +83,12 @@
     </div>
   </div>
 
-  <!-- Firebase SDKs (Compat for older HTML usage) -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 
   <script>
-    // Firebase config (make sure this is correct)
     const firebaseConfig = {
       apiKey: "AIzaSyCtxRAZMSTfTs0zVrgFSaZtkVNu0M5BGD4",
       authDomain: "aots-13497.firebaseapp.com",
@@ -94,7 +99,6 @@
       appId: "1:605826678120:web:ccb81fb4f79fd17c166add"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.database();
@@ -102,7 +106,6 @@
     let currentUsername = null;
     const output = document.getElementById("location");
 
-    // Login
     document.getElementById("loginForm").addEventListener("submit", function (e) {
       e.preventDefault();
       const email = document.getElementById("email").value;
@@ -122,45 +125,43 @@
     });
 
     function updateLocation(position) {
-  const lat = position.coords.latitude.toFixed(6);
-  const lon = position.coords.longitude.toFixed(6);
-  const accuracy = position.coords.accuracy.toFixed(1);
-  const now = new Date();
-  const timestamp = Math.floor(now.getTime() / 1000); // Convert to Unix timestamp (seconds)
-  const timestampStr = now.toLocaleString(); // Human-friendly timestamp
+      const lat = position.coords.latitude.toFixed(6);
+      const lon = position.coords.longitude.toFixed(6);
+      const accuracy = position.coords.accuracy.toFixed(1);
+      const now = new Date();
+      const timestamp = Math.floor(now.getTime() / 1000);
+      const timestampStr = now.toLocaleString();
 
-  output.innerHTML = `
-    <div class="label">Latitude:</div><div class="value">${lat}</div>
-    <div class="label">Longitude:</div><div class="value">${lon}</div>
-    <div class="label">Accuracy:</div><div class="value">${accuracy} meters</div>
-    <div class="label">Last updated:</div><div class="value">${timestampStr}</div>
-  `;
+      output.innerHTML = `
+        <div class="label">Latitude:</div><div class="value">${lat}</div>
+        <div class="label">Longitude:</div><div class="value">${lon}</div>
+        <div class="label">Accuracy:</div><div class="value">${accuracy} meters</div>
+        <div class="label">Last updated:</div><div class="value">${timestampStr}</div>
+      `;
 
-  const ref = db.ref("ambulances/" + currentUsername).push();
+      const ref = db.ref("ambulances/" + currentUsername).push();
 
-  ref.set({
-    latitude: lat,
-    longitude: lon,
-    accuracy: accuracy,
-    timestamp: timestamp,  // Use the Unix timestamp here
-    timestampStr: timestampStr
-  })
-    .then(() => {
-      console.log("✅ Location saved");
-
-      // Auto-remove after 2 minutes
-      setTimeout(() => {
-        ref.remove().then(() => {
-          console.log("🗑️ Entry auto-deleted");
-        }).catch(err => {
-          console.error("❌ Delete error:", err);
+      ref.set({
+        latitude: lat,
+        longitude: lon,
+        accuracy: accuracy,
+        timestamp: timestamp,
+        timestampStr: timestampStr
+      })
+        .then(() => {
+          console.log("✅ Location saved");
+          setTimeout(() => {
+            ref.remove().then(() => {
+              console.log("🗑️ Entry auto-deleted");
+            }).catch(err => {
+              console.error("❌ Delete error:", err);
+            });
+          }, 2 * 60 * 1000);
+        })
+        .catch(err => {
+          console.error("❌ Write error:", err);
         });
-      }, 2 * 60 * 1000); // 2 minutes
-    })
-    .catch(err => {
-      console.error("❌ Write error:", err);
-    });
-}
+    }
 
     function handleError(error) {
       console.error("❌ GPS Error:", error);
