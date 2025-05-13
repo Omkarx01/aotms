@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <title>Driver GPS Tracker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#111111" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon-192x192.png" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
     body, html {
@@ -22,6 +25,7 @@
 
     .logo {
       margin: 20px auto 10px;
+      width: 250px;
     }
 
     .login-container, .gps-container {
@@ -43,7 +47,7 @@
       color: #ffffff;
     }
 
-    .login-container input {
+    input {
       width: 90%;
       padding: 10px;
       margin: 10px 0;
@@ -53,11 +57,11 @@
       color: #f0f0f0;
     }
 
-    .login-container input::placeholder {
+    input::placeholder {
       color: #aaa;
     }
 
-    .login-container button {
+    button {
       width: 100%;
       padding: 10px;
       background: #28a745;
@@ -69,7 +73,7 @@
       transition: background 0.2s;
     }
 
-    .login-container button:hover {
+    button:hover {
       background: #444;
     }
 
@@ -87,6 +91,7 @@
     .value {
       font-size: 1.2em;
       color: #ffffff;
+      cursor: pointer;
     }
 
     #location p {
@@ -101,9 +106,18 @@
       }
     }
   </style>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('✅ Service Worker registered:', reg))
+          .catch(err => console.warn('❌ Service Worker registration failed:', err));
+      });
+    }
+  </script>
 </head>
 <body>
-  <img src="logoAOTMS.jpg" alt="Company Logo" class="logo" width="250" />
+  <img src="logoAOTMS.jpg" alt="Company Logo" class="logo" />
 
   <div class="login-container" id="loginContainer">
     <h2>Driver Login</h2>
@@ -148,10 +162,15 @@
 
     document.getElementById("loginForm").addEventListener("submit", function (e) {
       e.preventDefault();
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
       const errorMsg = document.getElementById("errorMsg");
       const loginBtn = document.getElementById("loginBtn");
+
+      if (!email || !password) {
+        errorMsg.textContent = "❌ Please enter both email and password.";
+        return;
+      }
 
       loginBtn.textContent = "Logging in...";
 
@@ -185,7 +204,6 @@
       `;
 
       const ref = db.ref("ambulances/" + currentUsername).push();
-
       ref.set({ latitude: lat, longitude: lon, accuracy, timestamp, timestampStr })
         .then(() => {
           console.log("✅ Location saved");
@@ -196,7 +214,7 @@
 
     function handleError(error) {
       console.error("❌ GPS Error:", error);
-      output.innerHTML = `<p style="color:#ff4d4d;">❌ GPS Error: ${error.message}</p>`;
+      output.innerHTML = `<p style='color:#ff4d4d;'>❌ GPS Error: ${error.message}</p>`;
     }
 
     function getLocation() {
@@ -210,7 +228,7 @@
     function startTracking() {
       if ("geolocation" in navigator) {
         getLocation();
-        setInterval(getLocation, 5000);
+        setInterval(getLocation, 7000);
       } else {
         output.innerHTML = "<p style='color:#ff4d4d;'>Geolocation is not supported by this browser.</p>";
       }
