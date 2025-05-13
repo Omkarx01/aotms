@@ -4,14 +4,20 @@
   <meta charset="UTF-8" />
   <title>Driver GPS Tracker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #111111;
+    body, html {
+      height: 100%;
       margin: 0;
-      padding: 20px;
-      text-align: center;
+      padding: 0;
+      background-color: #111111;
+      font-family: 'Inter', sans-serif;
       color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      text-align: center;
     }
 
     .logo {
@@ -23,8 +29,10 @@
       padding: 20px;
       border-radius: 10px;
       max-width: 400px;
+      width: 100%;
       margin: 20px auto;
       box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      transition: all 0.3s ease-in-out;
     }
 
     .login-container h2,
@@ -55,6 +63,7 @@
       border-radius: 5px;
       cursor: pointer;
       font-weight: bold;
+      transition: background 0.2s;
     }
 
     .login-container button:hover {
@@ -80,30 +89,37 @@
     #location p {
       color: #cccccc;
     }
+
+    @media (max-width: 400px) {
+      .login-container, .gps-container {
+        padding: 15px;
+        width: 90%;
+      }
+    }
   </style>
 </head>
 <body>
-
-  <img src="logoAOTMS.jpg" alt="Company Logo" class="logo" width="250" />
+  <img src="logoAOTMS-dark.png" alt="Company Logo" class="logo" width="250" />
 
   <div class="login-container" id="loginContainer">
     <h2>Driver Login</h2>
     <form id="loginForm">
-      <input type="email" id="email" placeholder="Email" required />
-      <input type="password" id="password" placeholder="Password" required />
-      <button type="submit">Login</button>
+      <input type="email" id="email" placeholder="📧 Email" required />
+      <input type="password" id="password" placeholder="🔒 Password" required />
+      <button type="submit" id="loginBtn">Login</button>
       <p class="error" id="errorMsg"></p>
     </form>
   </div>
 
   <div class="gps-container" id="gpsContainer" style="display:none;">
     <h2>📍 Live GPS Tracker</h2>
+    <h3 id="welcomeMsg"></h3>
     <div id="location">
       <p>Waiting for location...</p>
     </div>
+    <p>Status: <span style="color:limegreen;">● Live</span></p>
   </div>
 
-  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
@@ -131,16 +147,21 @@
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
       const errorMsg = document.getElementById("errorMsg");
+      const loginBtn = document.getElementById("loginBtn");
+
+      loginBtn.textContent = "Logging in...";
 
       auth.signInWithEmailAndPassword(email, password)
         .then(() => {
           currentUsername = email.split("@")[0];
           document.getElementById("loginContainer").style.display = "none";
           document.getElementById("gpsContainer").style.display = "block";
+          document.getElementById("welcomeMsg").textContent = `Welcome, ${currentUsername}`;
           startTracking();
         })
         .catch((err) => {
           errorMsg.textContent = "❌ " + err.message;
+          loginBtn.textContent = "Login";
         });
     });
 
@@ -153,34 +174,20 @@
       const timestampStr = now.toLocaleString();
 
       output.innerHTML = `
-        <div class="label">Latitude:</div><div class="value">${lat}</div>
-        <div class="label">Longitude:</div><div class="value">${lon}</div>
+        <div class="label">Latitude:</div><div class="value" onclick="navigator.clipboard.writeText('${lat}')">${lat}</div>
+        <div class="label">Longitude:</div><div class="value" onclick="navigator.clipboard.writeText('${lon}')">${lon}</div>
         <div class="label">Accuracy:</div><div class="value">${accuracy} meters</div>
         <div class="label">Last updated:</div><div class="value">${timestampStr}</div>
       `;
 
       const ref = db.ref("ambulances/" + currentUsername).push();
 
-      ref.set({
-        latitude: lat,
-        longitude: lon,
-        accuracy: accuracy,
-        timestamp: timestamp,
-        timestampStr: timestampStr
-      })
+      ref.set({ latitude: lat, longitude: lon, accuracy, timestamp, timestampStr })
         .then(() => {
           console.log("✅ Location saved");
-          setTimeout(() => {
-            ref.remove().then(() => {
-              console.log("🗑️ Entry auto-deleted");
-            }).catch(err => {
-              console.error("❌ Delete error:", err);
-            });
-          }, 2 * 60 * 1000);
+          setTimeout(() => ref.remove().then(() => console.log("🗑️ Entry auto-deleted")), 2 * 60 * 1000);
         })
-        .catch(err => {
-          console.error("❌ Write error:", err);
-        });
+        .catch(err => console.error("❌ Write error:", err));
     }
 
     function handleError(error) {
