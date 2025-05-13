@@ -13,9 +13,11 @@
       text-align: center;
       color: #f0f0f0;
     }
+
     .logo {
       margin: 20px auto;
     }
+
     .login-container, .gps-container {
       background: #1a1a1a;
       padding: 20px;
@@ -24,6 +26,12 @@
       margin: 20px auto;
       box-shadow: 0 0 10px rgba(0,0,0,0.5);
     }
+
+    .login-container h2,
+    .gps-container h2 {
+      color: #ffffff;
+    }
+
     .login-container input {
       width: 90%;
       padding: 10px;
@@ -33,9 +41,11 @@
       background-color: #222;
       color: #f0f0f0;
     }
+
     .login-container input::placeholder {
       color: #aaa;
     }
+
     .login-container button {
       width: 100%;
       padding: 10px;
@@ -44,27 +54,37 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      font-weight: bold;
     }
+
     .login-container button:hover {
       background: #444;
     }
+
     .error {
       color: #ff4d4d;
       font-size: 0.9em;
     }
+
     .label {
       font-weight: bold;
       color: #bbbbbb;
+      margin-top: 10px;
     }
+
     .value {
       font-size: 1.2em;
       color: #ffffff;
+    }
+
+    #location p {
+      color: #cccccc;
     }
   </style>
 </head>
 <body>
 
-  <img src="logoAOTMS.jpg" alt="Company Logo" class="logo" width="250" />
+  <img src="logoAOTMS-dark.png" alt="Company Logo" class="logo" width="250" />
 
   <div class="login-container" id="loginContainer">
     <h2>Driver Login</h2>
@@ -165,7 +185,7 @@
 
     function handleError(error) {
       console.error("❌ GPS Error:", error);
-      output.innerHTML = `<p style="color:red;">❌ GPS Error: ${error.message}</p>`;
+      output.innerHTML = `<p style="color:#ff4d4d;">❌ GPS Error: ${error.message}</p>`;
     }
 
     function getLocation() {
@@ -181,7 +201,7 @@
         getLocation();
         setInterval(getLocation, 5000);
       } else {
-        output.innerHTML = "Geolocation is not supported by this browser.";
+        output.innerHTML = "<p style='color:#ff4d4d;'>Geolocation is not supported by this browser.</p>";
       }
     }
   </script>
